@@ -3,6 +3,7 @@ import ast
 import configparser
 import io
 import os.path
+import re
 from typing import Any
 from typing import Dict
 from typing import Sequence
@@ -28,6 +29,8 @@ OPTIONS_KEYS = frozenset((
     *OPTIONS_AS_SECTIONS,
 ))
 FIND_PACKAGES_ARGS = ('where', 'exclude', 'include')
+
+WS = re.compile(r'\s')
 
 
 def is_setuptools_attr_call(node: ast.Call, attr: str) -> bool:
@@ -127,11 +130,15 @@ class Visitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def _normalize_requirement(req: str) -> str:
+    return WS.sub('', req).replace(';', '; ')
+
+
 def _list_as_str(lst: Sequence[str]) -> str:
     if len(lst) == 1:
-        return lst[0]
+        return _normalize_requirement(lst[0])
     else:
-        return '\n' + '\n'.join(lst)
+        return '\n' + '\n'.join(_normalize_requirement(item) for item in lst)
 
 
 def reformat_lists(section: Dict[str, Any]) -> Dict[str, Any]:
